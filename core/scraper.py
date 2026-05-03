@@ -1,50 +1,35 @@
-"""
-Parallel RSS scraper
-"""
-
 import feedparser
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from config import RSS_FEEDS
-from core.utils import logger, clean_title, clean_url
+from core.utils import clean_title, clean_url, logger
 
-def fetch_feed(feed: dict):
+
+def fetch_feed(feed):
     news = []
     try:
         parsed = feedparser.parse(feed["url"])
 
-        for entry in parsed.entries[:25]:
-            news_id = entry.get("id") or entry.get("link")
-            title   = clean_title(entry.get("title", ""))
-            url     = clean_url(entry.get("link", ""))
-
-            if not news_id or not title:
-                continue
-
+        for entry in parsed.entries[:20]:
             news.append({
-                "id": news_id,
-                "title": title,
-                "url": url,
+                "id": entry.get("link"),
+                "title": clean_title(entry.get("title")),
+                "url": clean_url(entry.get("link")),
                 "source": feed["name"],
             })
 
-        logger.info(f"📡 {feed['name']}: {len(news)} items")
-
     except Exception as e:
-        logger.warning(f"⚠️ Feed error ({feed['name']}): {e}")
+        logger.warning(f"⚠️ {feed['name']} error: {e}")
 
     return news
+
 
 def fetch_all_news():
     all_news = []
 
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = [executor.submit(fetch_feed, feed) for feed in RSS_FEEDS]
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        results = ex.map(fetch_feed, RSS_FEEDS)
+        for r in results:
+            all_news.extend(r)
 
-        for future in as_completed(futures):
-            try:
-                all_news.extend(future.result())
-            except Exception as e:
-                logger.warning(f"⚠️ Scraper error: {e}")
-
-    logger.info(f"📊 Total news: {len(all_news)}")
+    logger.info(f"📊 {len(all_news)} news fetched")
     return all_news
