@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto News</title>
+
+<style>
+body {
+    background: #0d0d15;
+    color: #fff;
+    font-family: Arial;
+    padding: 20px;
+}
+
+h1 {
+    color: #00ffcc;
+}
+
+.card {
+    background: #1a1a2e;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.meta {
+    font-size: 12px;
+    color: #aaa;
+}
+
+a {
+    color: #00ffcc;
+    text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🚀 Crypto News</h1>
+
+<p>Total: {{ stats.total }} | Today: {{ stats.today }}</p>
+
+{% for item in news %}
+<div class="card">
+    <h3>{{ item.title }}</h3>
+
+    {% if item.summary %}
+        <p>🧠 {{ item.summary }}</p>
+    {% endif %}
+
+    <div class="meta">
+        {{ item.source }} — {{ item.posted_at[:16] }}
+    </div>
+
+    <a href="{{ item.url }}" target="_blank">Read more →</a>
+</div>
+{% endfor %}
+
+</body>
+</html>
