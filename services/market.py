@@ -1,92 +1,40 @@
-"""
-Market service — CoinGecko integration with caching
-"""
-
-import time
 import requests
-from core.utils import logger
 from config import COIN_MAP
 
-_session = requests.Session()
 
-# ============================
-# Cache
-# ============================
-
-_cache = {}
-CACHE_TTL = 300  # seconds
-
-# ============================
-# Fetch price
-# ============================
-
-def get_coin_id_from_title(title: str):
+def get_market_data(title):
     title = title.lower()
-    for keyword, coin_id in COIN_MAP.items():
-        if keyword in title:
-            return coin_id
-    return None
 
+    coin_id = None
+    for k, v in COIN_MAP.items():
+        if k in title:
+            coin_id = v
+            break
 
-def fetch_price(coin_id: str):
+    if not coin_id:
+        return None
+
     try:
-        resp = _session.get(
+        r = requests.get(
             "https://api.coingecko.com/api/v3/simple/price",
             params={
                 "ids": coin_id,
                 "vs_currencies": "usd",
-                "include_24hr_change": "true",
                 "include_1hr_change": "true",
-            },
-            timeout=5,
-        )
+                "include_24hr_change": "true",
+            }
+        ).json()
 
-        data = resp.json().get(coin_id, {})
-        if not data:
-            return None
-
+        data = r.get(coin_id, {})
         price = data.get("usd", 0)
-        change_1h = round(data.get("usd_1h_change", 0), 2)
-        change_24h = round(data.get("usd_24h_change", 0), 2)
+        c1 = round(data.get("usd_1h_change", 0), 2)
+        c24 = round(data.get("usd_24h_change", 0), 2)
 
         return {
-            "price": price,
-            "change_1h": change_1h,
-            "change_24h": change_24h,
+            "price": f"${price:,.2f}",
+            "change_1h": f"{c1}%",
+            "change_24h": f"{c24}%"
         }
 
-    except Exception as e:
-        logger.warning(f"⚠️ Market API error: {e}")
+    except Exception:
         return None
-
-
-def get_market_data(title: str):
-    coin_id = get_coin_id_from_title(title)
-    if not coin_id:
-        return None
-
-    now = time.time()
-
-    # Check cache
-    if coin_id in _cache:
-        data, ts = _cache[coin_id]
-        if now - ts < CACHE_TTL:
-            return data
-
-    # Fetch fresh
-    data = fetch_price(coin_id)
-    if not data:
-        return None
-
-    # Format
-    def fmt_change(c):
-        return f"{'▲' if c >= 0 else '▼'} {'+' if c >= 0 else ''}{c}%"
-
-    formatted = {
-        "price": f"${data['price']:,.2f}",
-        "change_1h": fmt_change(data["change_1h"]),
-        "change_24h": fmt_change(data["change_24h"]),
-    }
-
-    _cache[coin_id] = (formatted, now)
-    return formatted
