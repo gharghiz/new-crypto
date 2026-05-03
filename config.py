@@ -57,3 +57,19 @@ IMPORTANT_KEYWORDS = [
     "etf", "sec", "hack", "crash", "pump",
     "regulation", "ban", "market"
 ]
+
+COIN_MAP = {
+    "bitcoin": "bitcoin",
+    "btc": "bitcoin",
+    "ethereum": "ethereum",
+    "eth": "ethereum",
+    "bnb": "binancecoin",
+    "solana": "solana",
+    "sol": "solana",
+    "xrp": "ripple",
+    "ripple": "ripple",
+    "cardano": "cardano",
+    "ada": "cardano",
+    "dogecoin": "dogecoin",
+    "doge": "dogecoin",
+}
