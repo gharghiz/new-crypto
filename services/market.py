@@ -1,6 +1,7 @@
-import requests
-from config import COIN_MAP
-
+try:
+    from config import COIN_MAP
+except Exception:
+    COIN_MAP = {}
 
 def get_market_data(title):
     title = title.lower()
