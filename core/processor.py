@@ -1,69 +1,36 @@
 import difflib
-from config import SIMILARITY_THRESHOLD, IMPORTANT_KEYWORDS
+from config import IMPORTANT_KEYWORDS, SIMILARITY_THRESHOLD
 from core.utils import safe_html
 from core.ai import generate_ai_insight
+from services.market import get_market_data
 
-# ============================
-# Filtering
-# ============================
 
-def is_important(title: str) -> bool:
+def is_important(title):
     t = title.lower()
     return any(k in t for k in IMPORTANT_KEYWORDS)
 
-# ============================
-# Duplicate detection
-# ============================
 
-def is_duplicate(title: str, recent_titles: list):
-    title = title.lower()
-
-    for prev in recent_titles[-100:]:
-        prev = prev.lower()
-
-        if title == prev:
-            return True
-
-        if title in prev or prev in title:
-            return True
-
+def is_duplicate(title, recent_titles):
+    for prev in recent_titles[-50:]:
         if difflib.SequenceMatcher(None, title, prev).ratio() >= SIMILARITY_THRESHOLD:
             return True
-
     return False
 
-# ============================
-# Sentiment (fast)
-# ============================
 
-def analyze_sentiment(title: str):
-    t = title.lower()
+def format_message(item):
+    title = item["title"]
 
-    if any(x in t for x in ["surge", "pump", "bull", "rally", "gain"]):
-        return "🟢"
-    if any(x in t for x in ["crash", "dump", "hack", "drop", "fall"]):
-        return "🔴"
-    return "🟡"
+    msg = f"📰 <b>{safe_html(title)}</b>\n\n"
 
-# ============================
-# Format message + AI
-# ============================
-
-def format_message(item: dict):
-    title  = item["title"]
-    url    = item["url"]
-    source = item["source"]
-
-    sentiment = analyze_sentiment(title)
-
-    # AI insight
     ai = generate_ai_insight(title)
+    if ai:
+        msg += f"🧠 {ai}\n\n"
 
-    msg = f"{sentiment} <b>{safe_html(title)}</b>\n\n"
+    market = get_market_data(title)
+    if market:
+        msg += f"💰 {market['price']}\n"
+        msg += f"📊 {market['change_1h']} | {market['change_24h']}\n\n"
 
-    if ai["summary"]:
-        msg += f"🧠 <b>Insight:</b> {safe_html(ai['summary'])}\n"
-
-    msg += f"\n📰 {source}\n🔗 {url}"
+    msg += f"🔗 {item['url']}"
 
     return msg
